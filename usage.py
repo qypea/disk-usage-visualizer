@@ -33,21 +33,22 @@ def parse_disk(blockdev):
                 arg = arg.strip()
                 if not arg:
                     # Discard empty free lists
-                    continue
-
-                if '-' not in arg:
-                    # Normalize any entries which are a single block
-                    arg = arg + '-' + arg
-                ret['free_blocks'].append(arg)
+                    pass
+                elif '-' in arg:
+                    # Range of blocks
+                    ret['free_blocks'].append([int(x) for x in arg.split('-')])
+                else:
+                    # Single block
+                    ret['free_blocks'].append([int(arg), int(arg)])
 
     return ret
 
 
 def set_pixels(data, blocks, color):
     """Set a range of pixels in the provided bytearray to the specified color"""
-    start = int(blocks.split('-')[0])
-    end = int(blocks.split('-')[1])
-    length = end - start
+    start = blocks[0]
+    end = blocks[1]
+    length = end - start + 1
     data[start:end] = color*length
 
 
@@ -59,8 +60,8 @@ def gen_image(parsed):
 
     data = bytearray(parsed['total_blocks'])
 
-    for free in parsed['free_blocks']:
-        set_pixels(data, free, WHITE)
+    for block in parsed['free_blocks']:
+        set_pixels(data, block, WHITE)
 
     image = Image.frombytes('P', [width, height], bytes(data))
 
