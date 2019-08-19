@@ -3,11 +3,15 @@
 """Draw an image showing usage of disk block by block"""
 
 import math
+import re
 import subprocess
+
 from PIL import Image
 
 WHITE = bytes([0xff])
 BLACK = bytes([0x00])
+BLUE = bytes([0xcc])
+GREEN = bytes([0x88])
 
 
 def parse_disk(blockdev):
@@ -18,7 +22,10 @@ def parse_disk(blockdev):
     ret = {
         'total_blocks': None,
         'free_blocks': [],
+        'superblocks': [],
+        'group_descriptors': [],
     }
+    group_base = None
     for line in dump.splitlines():
         line = line.decode("utf-8").strip()
 
@@ -26,6 +33,19 @@ def parse_disk(blockdev):
             if ret['total_blocks'] is not None:
                 raise Exception("Multiple 'Block Count' lines in dump")
             ret['total_blocks'] = int(line.split(':')[1].strip())
+
+        match = re.match(r'^Group [0-9]*: \(Blocks ([0-9]*).*', line)
+        if match:
+            group_base = int(match[1])
+
+        match = re.match(r'.*superblock at ([0-9]*).*', line)
+        if match:
+            block = int(match[1])
+            ret['superblocks'].append([block, block])
+
+        match = re.match(r'.*Group descriptors at ([0-9]*)-([0-9]*).*', line)
+        if match:
+            ret['group_descriptors'].append([int(match[1]), int(match[2])])
 
         if line.startswith('Free blocks:'):
             args = line.split(':')[1].strip().split(',')
@@ -62,6 +82,12 @@ def gen_image(parsed):
 
     for block in parsed['free_blocks']:
         set_pixels(data, block, WHITE)
+
+    for block in parsed['superblocks']:
+        set_pixels(data, block, BLUE)
+
+    for block in parsed['group_descriptors']:
+        set_pixels(data, block, GREEN)
 
     image = Image.frombytes('P', [width, height], bytes(data))
 

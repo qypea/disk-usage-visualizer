@@ -11,9 +11,9 @@ Total blocks on partition
 Each group occupies a range of blocks
 > Group 0: (Blocks 0-32767) csum 0xfbb1 [ITABLE_ZEROED]
 
-Special block descriptions(at X is offset from start)
->   Primary superblock at 0, Group descriptors at 1-1
->   Reserved GDT blocks at 2-92
+Special block descriptions
+>   Primary superblock at 0, Group descriptors at 1-1 # Absolute values
+>   Reserved GDT blocks at 2-92 # Absolute values
 >   Block bitmap at 93 (+93), csum 0x300994ca
 >   Inode bitmap at 99 (+99), csum 0x807db3a8
 >   Inode table at 105-592 (+105)
