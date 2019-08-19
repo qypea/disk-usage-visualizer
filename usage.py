@@ -31,6 +31,10 @@ def parse_disk(blockdev):
             args = line.split(':')[1].strip().split(',')
             for arg in args:
                 arg = arg.strip()
+                if not arg:
+                    # Discard empty free lists
+                    continue
+
                 if '-' not in arg:
                     # Normalize any entries which are a single block
                     arg = arg + '-' + arg
