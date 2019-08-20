@@ -15,6 +15,51 @@ GREEN = bytes([0x88])
 YELLOW = bytes([0x44])
 
 
+def parse_block_list(string, group_base=0):
+    """Parse a block list string"""
+    ret = []
+    args = string.split(',')
+    for arg in args:
+        arg = arg.strip()
+        if not arg:
+            # Discard empty free lists
+            pass
+        elif '-' in arg:
+            # Range of blocks
+            ret.append([int(x) + group_base for x in arg.split('-')])
+        else:
+            # Single block
+            ret.append([int(arg) + group_base, int(arg) + group_base])
+    return ret
+
+
+def parse_line(line, group_base):
+    """Parse a single line from the blockdev information"""
+    ret = {}
+
+    match = re.match(r'.*superblock at ([0-9]*).*', line)
+    if match:
+        ret['superblocks'] = parse_block_list(match[1])
+
+    match = re.match(r'.*Group descriptors at ([0-9-]*).*', line)
+    if match:
+        ret['group_descriptors'] = parse_block_list(match[1], group_base)
+
+    match = re.match(r'.*bitmap at ([0-9-]*).*', line)
+    if match:
+        ret['group_descriptors'] = parse_block_list(match[1], group_base)
+
+    match = re.match(r'.*Inode table at ([0-9-]*).*', line)
+    if match:
+        ret['inode_tables'] = parse_block_list(match[1], group_base)
+
+    match = re.match(r'Free blocks: ([0-9-, ]*)', line)
+    if match:
+        ret['free_blocks'] = parse_block_list(match[1])
+
+    return ret
+
+
 def parse_disk(blockdev):
     """Parse the disk usage information out of a blockdev
        blockdv must be formatted as ext? filesystem
@@ -32,46 +77,15 @@ def parse_disk(blockdev):
         line = line.decode("utf-8").strip()
 
         if line.startswith("Block count:"):
-            if ret['total_blocks'] is not None:
-                raise Exception("Multiple 'Block Count' lines in dump")
             ret['total_blocks'] = int(line.split(':')[1].strip())
 
         match = re.match(r'^Group [0-9]*: \(Blocks ([0-9]*).*', line)
         if match:
             group_base = int(match[1])
 
-        match = re.match(r'.*superblock at ([0-9]*).*', line)
-        if match:
-            block = int(match[1])
-            ret['superblocks'].append([block, block])
-
-        match = re.match(r'.*Group descriptors at ([0-9]*)-([0-9]*).*', line)
-        if match:
-            ret['group_descriptors'].append([int(match[1]), int(match[2])])
-
-        match = re.match(r'.*bitmap at ([0-9]*).*', line)
-        if match:
-            offset = int(match[1])
-            block = group_base + offset
-            ret['group_descriptors'].append([block, block])
-
-        match = re.match(r'.*Inode tables at ([0-9]*)-([0-9]*).*', line)
-        if match:
-            ret['inode_tables'].append([int(match[1]), int(match[2])])
-
-        if line.startswith('Free blocks:'):
-            args = line.split(':')[1].strip().split(',')
-            for arg in args:
-                arg = arg.strip()
-                if not arg:
-                    # Discard empty free lists
-                    pass
-                elif '-' in arg:
-                    # Range of blocks
-                    ret['free_blocks'].append([int(x) for x in arg.split('-')])
-                else:
-                    # Single block
-                    ret['free_blocks'].append([int(arg), int(arg)])
+        parsed = parse_line(line, group_base)
+        for key, value in parsed.items():
+            ret[key] += value
 
     return ret
 
