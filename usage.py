@@ -12,6 +12,7 @@ WHITE = bytes([0xff])
 BLACK = bytes([0x00])
 BLUE = bytes([0xcc])
 GREEN = bytes([0x88])
+YELLOW = bytes([0x44])
 
 
 def parse_disk(blockdev):
@@ -24,6 +25,7 @@ def parse_disk(blockdev):
         'free_blocks': [],
         'superblocks': [],
         'group_descriptors': [],
+        'inode_tables': [],
     }
     group_base = None
     for line in dump.splitlines():
@@ -46,6 +48,16 @@ def parse_disk(blockdev):
         match = re.match(r'.*Group descriptors at ([0-9]*)-([0-9]*).*', line)
         if match:
             ret['group_descriptors'].append([int(match[1]), int(match[2])])
+
+        match = re.match(r'.*bitmap at ([0-9]*).*', line)
+        if match:
+            offset = int(match[1])
+            block = group_base + offset
+            ret['group_descriptors'].append([block, block])
+
+        match = re.match(r'.*Inode tables at ([0-9]*)-([0-9]*).*', line)
+        if match:
+            ret['inode_tables'].append([int(match[1]), int(match[2])])
 
         if line.startswith('Free blocks:'):
             args = line.split(':')[1].strip().split(',')
@@ -88,6 +100,9 @@ def gen_image(parsed):
 
     for block in parsed['group_descriptors']:
         set_pixels(data, block, GREEN)
+
+    for block in parsed['inode_tables']:
+        set_pixels(data, block, YELLOW)
 
     image = Image.frombytes('P', [width, height], bytes(data))
 
