@@ -109,12 +109,17 @@ def gen_image(parsed):
     return image
 
 
-if __name__ == '__main__':
+def main():
+    """Main"""
     import json
     import sys
 
-    DATA = parse_disk(sys.argv[1])
-    print(json.dumps(DATA, indent=2))
-    IMAGE = gen_image(DATA)
-    print(IMAGE)
-    IMAGE.show()
+    data = parse_disk(sys.argv[1])
+    print(json.dumps(data, indent=2))
+    image = gen_image(data)
+    print(image)
+    image.show()
+
+
+if __name__ == '__main__':
+    main()
