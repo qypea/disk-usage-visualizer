@@ -8,11 +8,30 @@ import subprocess
 
 from PIL import Image
 
-WHITE = bytes([0xff])
-BLACK = bytes([0x00])
-BLUE = bytes([0xcc])
-GREEN = bytes([0x88])
-YELLOW = bytes([0x44])
+
+def build_palette():
+    """Build a palette of rgb colors"""
+    palette = [
+        0x80, 0x80, 0x80,  # Gray used blocks
+        0xff, 0xff, 0xff,  # White free blocks
+        0x00, 0x00, 0xff,  # Blue superblocks
+        0x00, 0xff, 0x00,  # Green group descriptors
+        0xff, 0xff, 0x00,  # Yellow inode tables
+    ]
+    while len(palette) < 768:
+        palette.append(0)
+
+    return palette
+
+
+PALETTE = build_palette()
+
+COLOR_KEY = {
+    'free_blocks': 1,
+    'superblocks': 2,
+    'group_descriptors': 3,
+    'inode_tables': 4,
+}
 
 
 def parse_block_list(string, group_base=0):
@@ -65,8 +84,8 @@ def parse_disk(blockdev):
        blockdv must be formatted as ext? filesystem
     """
     dump = subprocess.check_output(["sudo", "dumpe2fs", blockdev])
+    total_blocks = None
     ret = {
-        'total_blocks': None,
         'free_blocks': [],
         'superblocks': [],
         'group_descriptors': [],
@@ -77,7 +96,7 @@ def parse_disk(blockdev):
         line = line.decode("utf-8").strip()
 
         if line.startswith("Block count:"):
-            ret['total_blocks'] = int(line.split(':')[1].strip())
+            total_blocks = int(line.split(':')[1].strip())
 
         match = re.match(r'^Group [0-9]*: \(Blocks ([0-9]*).*', line)
         if match:
@@ -87,7 +106,7 @@ def parse_disk(blockdev):
         for key, value in parsed.items():
             ret[key] += value
 
-    return ret
+    return total_blocks, ret
 
 
 def set_pixels(data, blocks, color):
@@ -95,30 +114,23 @@ def set_pixels(data, blocks, color):
     start = blocks[0]
     end = blocks[1]
     length = end - start + 1
-    data[start:end] = color*length
+    data[start:end] = [color]*length
 
 
-def gen_image(parsed):
+def gen_image(total_blocks, parsed):
     """Generate an image representing the disk"""
     # Scale to 16:9
-    width = int(math.sqrt(parsed['total_blocks'] * 16 / 9))
-    height = int(parsed['total_blocks'] / width)
+    width = int(math.sqrt(total_blocks * 16 / 9))
+    height = int(total_blocks / width)
 
-    data = bytearray(parsed['total_blocks'])
+    data = bytearray(total_blocks)
 
-    for block in parsed['free_blocks']:
-        set_pixels(data, block, WHITE)
-
-    for block in parsed['superblocks']:
-        set_pixels(data, block, BLUE)
-
-    for block in parsed['group_descriptors']:
-        set_pixels(data, block, GREEN)
-
-    for block in parsed['inode_tables']:
-        set_pixels(data, block, YELLOW)
+    for key in parsed.keys():
+        for block in parsed[key]:
+            set_pixels(data, block, COLOR_KEY[key])
 
     image = Image.frombytes('P', [width, height], bytes(data))
+    image.putpalette(PALETTE)
 
     return image
 
@@ -128,9 +140,9 @@ def main():
     import json
     import sys
 
-    data = parse_disk(sys.argv[1])
-    print(json.dumps(data, indent=2))
-    image = gen_image(data)
+    total_blocks, parsed = parse_disk(sys.argv[1])
+    print(json.dumps(parsed, indent=2))
+    image = gen_image(total_blocks, parsed)
     print(image)
     image.show()
 
