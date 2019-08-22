@@ -1,6 +1,29 @@
-Analysing and visualizing disk usage
-====================================
+# Disk usage visualizer
 
+This is a simple script to help visualize the usage of your ext2/3/4 partitions on a linux system.
+
+![Boot partition](samples/boot.png)
+![Root partition](samples/root.png)
+
+## Building/running
+
+1. Install requirements:
+
+    sudo apt install e2fsprogs python3-pil
+    # Find the filesystem you want to inspect, check that it is ext*
+    mount
+
+2. Run the script
+
+* Note that the images generated can be very large if your partition is large*
+
+    ./usage.py /dev/sda1 # Shows image on screen
+    ./usage.py /dev/sda1 boot.png # Writes image to file
+
+
+## How its done
+
+dumpe2fs dumps stats about an ext2/3/4 partition, chiefly which blocks are used, free, descriptors, etc. So I run dumpe2fs and parse the results, then use PIL to generate an image to see what's happening there.
 
     sudo dumpe2fs /dev/sda1
     sudo dumpe2fs /dev/mapper/ubuntu--vg-root
