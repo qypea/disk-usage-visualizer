@@ -137,14 +137,20 @@ def gen_image(total_blocks, parsed):
 
 def main():
     """Main"""
-    import json
     import sys
 
+    if len(sys.argv) < 2:
+        raise Exception(
+            "Usage: {} [partition] [(optional)filename.png]".format(
+                sys.argv[0]))
+
     total_blocks, parsed = parse_disk(sys.argv[1])
-    print(json.dumps(parsed, indent=2))
     image = gen_image(total_blocks, parsed)
-    print(image)
-    image.show()
+
+    if len(sys.argv) > 2:
+        image.save(sys.argv[2])
+    else:
+        image.show()
 
 
 if __name__ == '__main__':
