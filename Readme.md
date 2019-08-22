@@ -7,15 +7,17 @@ This is a simple script to help visualize the usage of your ext2/3/4 partitions 
 
 ## Building/running
 
-1. Install requirements:
+1. Install requirements
+
+*Dependencies will vary for other systems. This is ubuntu*
 
     sudo apt install e2fsprogs python3-pil
-    # Find the filesystem you want to inspect, check that it is ext*
+    # Find the filesystem you want to inspect, check that it is ext
     mount
 
 2. Run the script
 
-* Note that the images generated can be very large if your partition is large*
+*Note that the images generated can be very large if your partition is large*
 
     ./usage.py /dev/sda1 # Shows image on screen
     ./usage.py /dev/sda1 boot.png # Writes image to file
