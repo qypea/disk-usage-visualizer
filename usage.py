@@ -5,6 +5,7 @@
 import math
 import re
 import subprocess
+import sys
 
 from PIL import Image
 
@@ -83,7 +84,11 @@ def parse_disk(blockdev):
     """Parse the disk usage information out of a blockdev
        blockdv must be formatted as ext? filesystem
     """
-    dump = subprocess.check_output(["sudo", "dumpe2fs", blockdev])
+    if blockdev == '-':
+        dump = sys.stdin.read()
+    else:
+        dump = subprocess.check_output(
+            ["sudo", "dumpe2fs", blockdev]).decode("utf-8")
     total_blocks = None
     ret = {
         'free_blocks': [],
@@ -93,7 +98,7 @@ def parse_disk(blockdev):
     }
     group_base = None
     for line in dump.splitlines():
-        line = line.decode("utf-8").strip()
+        line = line.strip()
 
         if line.startswith("Block count:"):
             total_blocks = int(line.split(':')[1].strip())
@@ -137,8 +142,6 @@ def gen_image(total_blocks, parsed):
 
 def main():
     """Main"""
-    import sys
-
     if len(sys.argv) < 2:
         raise Exception(
             "Usage: {} [partition] [(optional)filename.png]".format(

@@ -21,6 +21,7 @@ This is a simple script to help visualize the usage of your ext2/3/4 partitions 
 
     ./usage.py /dev/sda1 # Shows image on screen
     ./usage.py /dev/sda1 boot.png # Writes image to file
+    ./usage.py - < dump.txt # Generate image from saved dump file
 
 
 ## How its done
