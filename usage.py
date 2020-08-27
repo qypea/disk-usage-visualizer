@@ -8,6 +8,7 @@ import subprocess
 import sys
 
 from PIL import Image
+import hilbert_curve
 
 
 def build_palette():
@@ -124,15 +125,26 @@ def set_pixels(data, blocks, color):
 
 def gen_image(total_blocks, parsed):
     """Generate an image representing the disk"""
-    # Scale to 16:9
-    width = int(math.sqrt(total_blocks * 16 / 9))
-    height = int(total_blocks / width)
+    # Scale to contain a hilbert curve
+    m = 1
+    while (2**m) * 2 < total_blocks:
+        m += 1
+    total_blocks = (2**m) * 2
 
-    data = bytearray(total_blocks)
+    width = int(math.sqrt(total_blocks))
+    height = width
+
+    data_linear = bytearray(total_blocks)
 
     for key in parsed.keys():
         for block in parsed[key]:
-            set_pixels(data, block, COLOR_KEY[key])
+            set_pixels(data_linear, block, COLOR_KEY[key])
+
+    data = bytearray(total_blocks)
+    for i, byte in zip(range(len(data_linear)), data_linear):
+        x,y = hilbert_curve.d2xy(m, i)
+        index = (y * width) + x
+        data[index] = byte
 
     image = Image.frombytes('P', [width, height], bytes(data))
     image.putpalette(PALETTE)
