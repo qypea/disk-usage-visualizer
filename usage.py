@@ -14,6 +14,7 @@ import hilbert_curve
 def build_palette():
     """Build a palette of rgb colors"""
     palette = [
+        0x00, 0x00, 0x00,  # Black image border
         0x80, 0x80, 0x80,  # Gray used blocks
         0xff, 0xff, 0xff,  # White free blocks
         0x00, 0x00, 0xff,  # Blue superblocks
@@ -29,10 +30,12 @@ def build_palette():
 PALETTE = build_palette()
 
 COLOR_KEY = {
-    'free_blocks': 1,
-    'superblocks': 2,
-    'group_descriptors': 3,
-    'inode_tables': 4,
+    'border': 0,
+    'used_blocks': 1,
+    'free_blocks': 2,
+    'superblocks': 3,
+    'group_descriptors': 4,
+    'inode_tables': 5,
 }
 
 
@@ -129,18 +132,20 @@ def gen_image(total_blocks, parsed):
     m = 1
     while (2**m) * 2 < total_blocks:
         m += 1
-    total_blocks = (2**m) * 2
+    pixels = (2**m) * 2
 
-    width = int(math.sqrt(total_blocks))
+    width = int(math.sqrt(pixels))
     height = width
 
     data_linear = bytearray(total_blocks)
+    set_pixels(data_linear, (0, total_blocks-1), COLOR_KEY['used_blocks'])
 
     for key in parsed.keys():
         for block in parsed[key]:
             set_pixels(data_linear, block, COLOR_KEY[key])
 
-    data = bytearray(total_blocks)
+    data = bytearray(pixels)
+    set_pixels(data, (0, pixels-1), COLOR_KEY['border'])
     for i, byte in zip(range(len(data_linear)), data_linear):
         x,y = hilbert_curve.d2xy(m, i)
         index = (y * width) + x
