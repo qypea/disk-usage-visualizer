@@ -126,6 +126,26 @@ def set_pixels(data, blocks, color):
     data[start:end] = [color]*length
 
 
+def stretch_array(data, newlength):
+    """Stretch an array to a new length."""
+    oldlength = len(data)
+    assert oldlength <= newlength, "Can't shrink in stretch function"
+
+    factor = float(newlength) / float(oldlength)
+
+    result = bytearray(newlength)
+    i = 0
+    offset = 0.0
+    for byte in data:
+        offset += factor
+        while offset >= 1.0:
+            result[i] = byte
+            i += 1
+            offset -= 1.0
+
+    return result
+
+
 def hilbert_convert(data_linear):
     """Map the data in data_linear into a hilbert curve."""
 
@@ -140,8 +160,9 @@ def hilbert_convert(data_linear):
     width = int(math.sqrt(pixels))
     height = width
 
+    data_linear = stretch_array(data_linear, pixels)
+
     data = bytearray(pixels)
-    set_pixels(data, (0, pixels-1), COLOR_KEY['border'])
     for i, byte in zip(range(len(data_linear)), data_linear):
         x, y = hilbert_curve.d2xy(m, i)
         index = (y * width) + x
