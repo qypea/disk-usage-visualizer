@@ -147,7 +147,7 @@ def gen_image(total_blocks, parsed):
     data = bytearray(pixels)
     set_pixels(data, (0, pixels-1), COLOR_KEY['border'])
     for i, byte in zip(range(len(data_linear)), data_linear):
-        x,y = hilbert_curve.d2xy(m, i)
+        x, y = hilbert_curve.d2xy(m, i)
         index = (y * width) + x
         data[index] = byte
 
