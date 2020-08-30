@@ -126,8 +126,11 @@ def set_pixels(data, blocks, color):
     data[start:end] = [color]*length
 
 
-def gen_image(total_blocks, parsed):
-    """Generate an image representing the disk"""
+def hilbert_convert(data_linear):
+    """Map the data in data_linear into a hilbert curve."""
+
+    total_blocks = len(data_linear)
+
     # Scale to contain a hilbert curve
     m = 1
     while (2**m) * 2 < total_blocks:
@@ -137,6 +140,18 @@ def gen_image(total_blocks, parsed):
     width = int(math.sqrt(pixels))
     height = width
 
+    data = bytearray(pixels)
+    set_pixels(data, (0, pixels-1), COLOR_KEY['border'])
+    for i, byte in zip(range(len(data_linear)), data_linear):
+        x, y = hilbert_curve.d2xy(m, i)
+        index = (y * width) + x
+        data[index] = byte
+
+    return data, width, height
+
+
+def gen_image(total_blocks, parsed):
+    """Generate an image representing the disk"""
     data_linear = bytearray(total_blocks)
     set_pixels(data_linear, (0, total_blocks-1), COLOR_KEY['used_blocks'])
 
@@ -144,12 +159,7 @@ def gen_image(total_blocks, parsed):
         for block in parsed[key]:
             set_pixels(data_linear, block, COLOR_KEY[key])
 
-    data = bytearray(pixels)
-    set_pixels(data, (0, pixels-1), COLOR_KEY['border'])
-    for i, byte in zip(range(len(data_linear)), data_linear):
-        x, y = hilbert_curve.d2xy(m, i)
-        index = (y * width) + x
-        data[index] = byte
+    data, width, height = hilbert_convert(data_linear)
 
     image = Image.frombytes('P', [width, height], bytes(data))
     image.putpalette(PALETTE)
